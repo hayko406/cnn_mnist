@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import os
 
 class CNN(nn.Module):
     def __init__(self):
@@ -28,7 +29,8 @@ def get_probs(output):
 
 def predict(img_array):
     model = CNN()
-    model.load_state_dict(torch.load("./pytorch_model/cnn_model.pth", map_location=torch.device("cpu")))
+    model_path = os.path.join(os.path.dirname(__file__), "pytorch_model/cnn_model.pth")
+    model.load_state_dict(torch.load(model_path, map_location=torch.device("cpu")))
     model.eval()
     img_tensor = torch.tensor(img_array, dtype=torch.float32)
     img_tensor = img_tensor.view(-1, 1, 28, 28) 
