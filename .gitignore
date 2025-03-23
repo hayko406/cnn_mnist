@@ -1,3 +1,5 @@
 *cnn_network
 *data
 *venv_cnn
+__pycache__/
+*.pyc

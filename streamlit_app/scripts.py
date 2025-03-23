@@ -4,31 +4,43 @@ import torch.nn.functional as F
 import os
 
 class CNN(nn.Module):
-    def __init__(self):
+    def __init__(self, num_kernels, kernel_size):
         super(CNN, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=1, out_channels=8, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         
-        self.pool = nn.MaxPool2d(kernel_size=(2, 2), stride=(2, 2))
-        self.conv2 = nn.Conv2d(in_channels=8, out_channels=16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.dropout = nn.Dropout(.5)
-        self.fc1 = nn.Linear(16*7*7, 10)
-
+        self.conv_layers = nn.Sequential(
+            nn.Conv2d(1, num_kernels, kernel_size=(kernel_size,kernel_size), padding=1), # (28-kernel_size+3)
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2), # (13, 13)
+            
+            nn.Conv2d(num_kernels, num_kernels, kernel_size=(kernel_size-1,kernel_size-1), padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2), # (6, 6)
+            
+            nn.Conv2d(num_kernels, num_kernels, kernel_size=(kernel_size-2,kernel_size-2), padding=1),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2) # (3, 3)
+        )
+        
+        self.dropout =  nn.Dropout(.5)
+        self.fc_layers = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(9 * num_kernels, 128),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(128, 10) 
+        )
+    
     def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = self.pool(x)
-        x = F.relu(self.conv2(x))
-        x = self.pool(x)
-        x = x.reshape(x.shape[0], -1)
+        x = self.conv_layers(x)
         x = self.dropout(x)
-        x = self.fc1(x)
-
-        return x
+        output = self.fc_layers(x)
+        return output
 
 def get_probs(output):
     return F.softmax(output[0], dim=0)
 
 def predict(img_array):
-    model = CNN()
+    model = CNN(num_kernels=16, kernel_size=5)
     model_path = os.path.join(os.path.dirname(__file__), "pytorch_model/cnn_model.pth")
     model.load_state_dict(torch.load(model_path, map_location=torch.device("cpu")))
     model.eval()
